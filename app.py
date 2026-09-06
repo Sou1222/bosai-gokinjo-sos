@@ -6,15 +6,21 @@
 """
 
 import math
+import os
 import sqlite3
 import time
 import uuid
 from pathlib import Path
 
-from flask import Flask, g, jsonify, render_template, request
+from flask import Flask, g, jsonify, render_template, request, send_from_directory
 
-DB_PATH = Path(__file__).parent / "sos.db"
-UPLOAD_DIR = Path(__file__).parent / "static" / "uploads"
+# Render では永続ディスクを DATA_DIR (例: /var/data) にマウントして使う。
+# 未設定ならローカル同様プロジェクト直下に保存する。
+DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+DB_PATH = DATA_DIR / "sos.db"
+UPLOAD_DIR = DATA_DIR / "uploads"
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
 SKILL_CATEGORIES = [
@@ -169,6 +175,16 @@ def find_matches(req_row, db, limit=5):
     return scored[:limit]
 
 
+# gunicorn など WSGI サーバー経由で起動された場合でも
+# 必ずテーブル作成・カラム追加・uploads ディレクトリ生成を行う
+init_db()
+
+
+@app.route("/uploads/<path:filename>")
+def uploaded_file(filename):
+    return send_from_directory(UPLOAD_DIR, filename)
+
+
 @app.route("/")
 def index():
     return render_template(
@@ -221,7 +237,7 @@ def api_requests():
                 "urgency": r["urgency"],
                 "urgency_label": URGENCY_LABELS.get(r["urgency"], "中"),
                 "status": r["status"],
-                "image_url": f"/static/uploads/{r['image']}" if r["image"] else None,
+                "image_url": f"/uploads/{r['image']}" if r["image"] else None,
                 "matches": find_matches(r, db),
             }
         )
@@ -284,7 +300,7 @@ def api_helpers():
     results = []
     for r in rows:
         item = dict(r)
-        item["image_url"] = f"/static/uploads/{r['image']}" if r["image"] else None
+        item["image_url"] = f"/uploads/{r['image']}" if r["image"] else None
 
         matched = []
         for req in open_requests:
@@ -345,5 +361,4 @@ def api_messages():
 
 
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True, host="0.0.0.0", port=5001)

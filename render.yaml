@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: bosai-gokinjo-sos
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+
+    # --- データ永続化(有料プランのみ) ---
+    # Render の無料プランは永続ディスク非対応のため、デフォルトでは
+    # コンテナ内に保存され、再デプロイ/再起動でリセットされます(デモ用途なら可)。
+    # 有料プランでデータを残したい場合は下記のコメントを外してください。
+    # envVars:
+    #   - key: DATA_DIR
+    #     value: /var/data
+    # disk:
+    #   name: data
+    #   mountPath: /var/data
+    #   sizeGB: 1
