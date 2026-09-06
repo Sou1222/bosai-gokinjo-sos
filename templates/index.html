@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>防災ご近所SOS</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+</head>
+<body>
+<header>
+  <h1>🆘 防災ご近所SOS</h1>
+  <p>災害直後、行政の支援が届く前の「ご近所同士の助け合い」をマッチングします</p>
+</header>
+
+<main>
+  <section class="panel wide">
+    <div class="form-tabs">
+      <button type="button" class="tab-btn active" data-tab="request">🆘 助けてほしい</button>
+      <button type="button" class="tab-btn" data-tab="helper">🤝 協力できる</button>
+    </div>
+
+    <div id="request-panel" class="tab-panel active">
+      <h2>助けてほしいことを投稿する</h2>
+      <form id="request-form">
+        <label>お名前 <input type="text" name="name" required></label>
+        <div class="latlng-row">
+          <label>緯度(lat) <input type="number" step="any" name="lat" required></label>
+          <label>経度(lng) <input type="number" step="any" name="lng" required></label>
+          <button type="button" class="locate-form-btn" data-form="request">📍 現在地を使う</button>
+        </div>
+        <label>カテゴリ
+          <select name="category" required>
+            {% for c in skill_categories %}
+            <option value="{{ c }}">{{ c }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>緊急度
+          <select name="urgency" required>
+            <option value="3">緊急</option>
+            <option value="2" selected>高</option>
+            <option value="1">中</option>
+          </select>
+        </label>
+        <label>詳細 <textarea name="description" required placeholder="例: 高齢の母と二人暮らし、水が不足しています"></textarea></label>
+        <label>写真(任意) <input type="file" name="image" accept="image/*"></label>
+        <button type="submit">SOSを投稿</button>
+      </form>
+    </div>
+
+    <div id="helper-panel" class="tab-panel">
+      <h2>協力できることを登録する</h2>
+      <form id="helper-form">
+        <label>お名前 <input type="text" name="name" required></label>
+        <div class="latlng-row">
+          <label>緯度(lat) <input type="number" step="any" name="lat" required></label>
+          <label>経度(lng) <input type="number" step="any" name="lng" required></label>
+          <button type="button" class="locate-form-btn" data-form="helper">📍 現在地を使う</button>
+        </div>
+        <label>協力できること(複数選択可)
+          <select name="skills" multiple size="4" required>
+            {% for c in skill_categories %}
+            <option value="{{ c }}">{{ c }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>写真(任意) <input type="file" name="image" accept="image/*"></label>
+        <button type="submit">協力者として登録</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="panel wide">
+    <h2>③ 地図（赤=SOS / 青=協力者）</h2>
+    <div class="map-toolbar">
+      <span id="click-target-hint">地図クリックで、現在選択中のタブ（🆘 助けてほしい）に座標を入力します</span>
+      <button type="button" id="locate-btn" class="locate-btn">📍 現在地に移動</button>
+      <span id="locate-status" class="locate-status"></span>
+    </div>
+    <div id="leaflet-map"></div>
+    <p class="hint">地図をクリックすると、選択中のタブのフォームに緯度・経度が自動入力されます。マーカーをクリックすると詳細が見られます。</p>
+  </section>
+
+  <section class="panel wide">
+    <h2>④ 助けてほしい一覧（お助け）</h2>
+    <div class="list-toolbar">
+      <span>並び替え:</span>
+      <select id="sort-select">
+        <option value="urgency">緊急度順</option>
+        <option value="distance">現在地から近い順</option>
+        <option value="category">ジャンル順</option>
+      </select>
+    </div>
+    <div id="requests-list"></div>
+  </section>
+
+  <section class="panel wide">
+    <h2>⑤ 協力者一覧</h2>
+    <div id="helpers-list"></div>
+  </section>
+</main>
+
+<div id="chat-modal" class="chat-modal hidden">
+  <div class="chat-modal-content">
+    <div class="chat-header">
+      <span id="chat-title"></span>
+      <button type="button" id="chat-close" class="chat-close">✕</button>
+    </div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <form id="chat-form" class="chat-form">
+      <select id="chat-sender">
+        <option value="requester">🆘 依頼者として送信</option>
+        <option value="helper">🤝 協力者として送信</option>
+      </select>
+      <input type="text" id="chat-input" placeholder="メッセージを入力" required autocomplete="off">
+      <button type="submit">送信</button>
+    </form>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
